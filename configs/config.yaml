@@ -1,0 +1,13 @@
+default:
+  input: ./data/input.log
+  output: ./data/output.log
+pipeline:
+  stripper:
+    - { field: "user" }
+    - { field: "id" }
+  filter:
+    - { field: "level", value: "DEBUG" }
+  masker:
+    - { field: "card", preset: "card" }
+    - { field: "password", range: "full" }
+    - { field: "email", preset: "email" }
