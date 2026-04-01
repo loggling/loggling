@@ -52,7 +52,7 @@ default:
     input: ./data/input.log
     output: ./data/output.log
 
-# 🚨 [NEW] 서버 게이트웨이 모드 (HTTP Ingress)
+# 서버 게이트웨이 모드 (HTTP Ingress)
 server:
     enabled: true # true로 켜면 로컬 파일 탐색을 건너뛰고 포트를 엽니다.
     port: 8080 # 수신 대기할 포트 (기본값: 8080)
