@@ -3,7 +3,9 @@ default:
     - "./data/*.log"
   output: "./data/output.log"
   registry: "./.logging_registry"
-
+server:
+    enabled: true
+    port: 8080
 pipeline:
   stripper:
     - { field: "user" }

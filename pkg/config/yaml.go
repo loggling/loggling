@@ -13,7 +13,13 @@ type DefaultConfig struct {
 }
 type Config struct {
 	Default  DefaultConfig
+	Server   ServerConfig
 	Pipeline map[string][]ParamsConfig `yaml:"pipeline"`
+}
+
+type ServerConfig struct {
+	Enabled bool `yaml:"enabled"`
+	Port    int  `yaml:"port"`
 }
 type ParamsConfig map[string]string
 
