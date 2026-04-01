@@ -16,7 +16,21 @@ type LogItem struct {
 }
 
 type StreamRunner struct {
-	Pipeline *Pipeline
+	pipeline atomic.Value
+}
+
+func NewStreamRunner(p *Pipeline) *StreamRunner {
+	r := &StreamRunner{}
+	r.pipeline.Store(p)
+	return r
+}
+
+func (r *StreamRunner) SwapPipeline(p *Pipeline) {
+	r.pipeline.Store(p)
+}
+
+func (r *StreamRunner) getPipeline() *Pipeline {
+	return r.pipeline.Load().(*Pipeline)
 }
 
 func (r *StreamRunner) RunParallel(inputs []io.Reader, output io.Writer) error {
@@ -94,7 +108,8 @@ func (r *StreamRunner) worker(input io.Reader, out chan<- LogItem, myCounter *in
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		result := r.Pipeline.Execute(line)
+		p := r.getPipeline()
+		result := p.Execute(line)
 
 		if result != nil {
 			currentTime := extractTimestamp()
@@ -113,7 +128,7 @@ func (r *StreamRunner) worker(input io.Reader, out chan<- LogItem, myCounter *in
 				Data:      dataCopy,
 			}
 
-			r.Pipeline.Release(result)
+			p.Release(result)
 			atomic.AddInt64(myCounter, 1)
 		}
 	}
@@ -157,6 +172,7 @@ func (r *StreamRunner) Run(input io.Reader, output io.Writer) error {
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
+		p := r.getPipeline()
 
 		func() {
 			defer func() {
@@ -165,12 +181,12 @@ func (r *StreamRunner) Run(input io.Reader, output io.Writer) error {
 				}
 			}()
 
-			result := r.Pipeline.Execute(line)
+			result := p.Execute(line)
 
 			if result != nil {
 				writer.Write(result.Data)
 				writer.WriteByte('\n')
-				r.Pipeline.Release(result)
+				p.Release(result)
 			}
 		}()
 	}
