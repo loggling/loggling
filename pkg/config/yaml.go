@@ -7,8 +7,9 @@ import (
 )
 
 type DefaultConfig struct {
-	InputPath  string `yaml:"input"`
-	OutputPath string `yaml:"output"`
+	Inputs   []string `yaml:"inputs"`
+	Output   string   `yaml:"output"`
+	Registry string   `yaml:"registry"`
 }
 type Config struct {
 	Default  DefaultConfig

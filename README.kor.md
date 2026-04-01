@@ -81,12 +81,11 @@ go build -o loggling ./cmd/loggling/main.go
 
 ---
 
-## 로드맵 (Roadmap)
+## 최근 업데이트 (Recent Updates)
 
-- [x] V1.0: 단일 스레드 기반 Zero-copy 정제 엔진 (배포 준비 완료)
-- [ ] V1.5: 멀티 코어 병렬 처리 (Worker Pool)
-- [ ] V2.0: 네트워크 게이트웨이 모드 (gRPC / HTTP 입력)
-- [ ] V2.5: 핫 리로드 (무중단 설정 반영)
+- **다중 코어 병렬 처리(Parallel Processing)**: Go 패키지의 워커 풀(Worker Pool)을 이용해 수많은 디렉토리 내 파일들을 모든 CPU 코어가 동시에 파싱합니다.
+- **TUI 모니터링**: Docker 커맨드라인처럼 한눈에 들어오는 멀티라인 진행률 바와 워커별 처리 속도(TPS) 애니메이션을 터미널에서 실시간으로 감상하세요!
+- **Glob 경로 탐색**: 와일드카드(`*.log`)를 활용하여 다중 파일과 로그 디렉토리를 한 번에 편하게 쓸어 담을 수 있습니다.
 
 ---
 

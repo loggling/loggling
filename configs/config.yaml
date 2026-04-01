@@ -1,6 +1,9 @@
 default:
-  input: ./data/input.log
-  output: ./data/output.log
+  inputs: 
+    - "./data/*.log"
+  output: "./data/output.log"
+  registry: "./.logging_registry"
+
 pipeline:
   stripper:
     - { field: "user" }

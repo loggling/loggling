@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/loggling/loggling/pkg/config"
 	"github.com/loggling/loggling/pkg/engine"
@@ -16,22 +18,42 @@ func main() {
 	}
 
 	pipe := engine.NewPipelineFromConfig(cfg)
+	var targetFiles []string
 
-	inFile, err := os.Open(cfg.Default.InputPath)
-	if err != nil {
-		log.Fatalf("input file error: %v", err)
+	for _, pattern := range cfg.Default.Inputs {
+		matches, err := filepath.Glob(pattern)
+		if err == nil {
+			targetFiles = append(targetFiles, matches...)
+		}
 	}
-	defer inFile.Close()
 
-	outFile, err := os.Create(cfg.Default.OutputPath)
+	if len(targetFiles) == 0 {
+		log.Fatalf("empty files (패턴: %v)", cfg.Default.Inputs)
+	}
+
+	outFile, err := os.Create(cfg.Default.Output)
 	if err != nil {
 		log.Fatalf("output file error: %v", err)
 	}
 	defer outFile.Close()
 
 	runner := &engine.StreamRunner{Pipeline: pipe}
-	if err := runner.Run(inFile, outFile); err != nil {
-		log.Fatalf("runtime error: %v", err)
+	var inputs []io.Reader
+
+	for _, file := range targetFiles {
+		inFile, err := os.Open(file)
+
+		if err != nil {
+			log.Printf("[%s] failed to open: %v", file, err)
+			continue
+		}
+
+		defer inFile.Close()
+		inputs = append(inputs, inFile)
+	}
+
+	if err := runner.RunParallel(inputs, outFile); err != nil {
+		log.Printf("runtime error: %v", err)
 	}
 
 	fmt.Println("Processing complete.")

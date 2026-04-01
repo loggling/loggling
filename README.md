@@ -81,12 +81,11 @@ go build -o loggling ./cmd/loggling/main.go
 
 ---
 
-## Roadmap
+## Recent Updates
 
-- [x] V1.0: Single-threaded zero-copy engine
-- [ ] V1.5: Multi-core parallel processing (worker pool)
-- [ ] V2.0: Network gateway mode (gRPC / HTTP ingress)
-- [ ] V2.5: Hot reload (config updates without restart)
+- **Multi-core Parallel Processing**: Process massive glob directories efficiently utilizing all CPU cores with Go Worker Pools.
+- **TUI Progress Monitoring**: View beautiful Docker-style, multi-line progress bars and TPS speeds directly in your terminal.
+- **Glob Path Integration**: Easily tail and match multiple target files recursively.
 
 ---
 
