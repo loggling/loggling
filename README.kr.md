@@ -97,6 +97,7 @@ go build -o loggling ./cmd/loggling/main.go
 
 ## 최근 업데이트
 
+- **무중단 핫 리로드 (Hot Config Reload)**: 엔진이 수백만 건의 파싱을 진행하는 도중에도 `config.yaml`의 변경점을 실시간 감시하고 메모리를 락-프리(Lock-free)로 교체합니다. 서버 재시작 없이 파이프라인 룰이 0.001초 만에 갱신됩니다.
 - **네트워크 게이트웨이 모드 (HTTP Ingress)**: 로컬 파일을 읽는 것을 넘어 `POST /logs` 포트를 수신하는 무한 대기형 고속 중앙 로그 수집 서버로 작동합니다.
 - **무중단 다운타임 지원 (Zero-downtime Log Rotation)**: 운영 중인 서버에서 `SIGHUP` 신호망을 쏴주면, 프로세스 재시작 없이 빈 파일로 안전하게 연결을 갈아입습니다 (`logrotate` 및 `newsyslog` 완벽 호환).
 - **다중 코어 병렬 처리**: Go 패키지의 워커 풀을 이용해 디렉토리 내 파일들을 모든 CPU 코어가 동시에 파싱합니다.

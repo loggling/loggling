@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/loggling/loggling/pkg/config"
 	"github.com/loggling/loggling/pkg/engine"
@@ -52,7 +53,15 @@ func main() {
 		}
 	}()
 
-	runner := &engine.StreamRunner{Pipeline: pipe}
+	runner := engine.NewStreamRunner(pipe)
+
+	go config.WatchConfig("./configs/config.yaml", 2*time.Second, func(newCfg *config.Config) {
+		newPipeline := engine.NewPipelineFromConfig(newCfg)
+		// Atomically swap the pipeline without any locks
+		runner.SwapPipeline(newPipeline)
+		log.Println("[Loggling] Hot-reload complete! New YAML ruleset applied without downtime.")
+	})
+
 	if cfg.Server.Enabled {
 		gateway := &server.Gateway{
 			Runner: runner,
