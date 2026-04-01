@@ -52,6 +52,11 @@ default:
     input: ./data/input.log
     output: ./data/output.log
 
+# 🚨 [NEW] Server Gateway Mode (HTTP Ingress)
+server:
+    enabled: true   # If true, skips local files and opens the HTTP port
+    port: 8080      # Listening port (default: 8080)
+
 pipeline:
     # 1. Performance-focused filtering (executed first to reduce downstream overhead)
     filter:
