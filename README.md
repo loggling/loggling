@@ -92,6 +92,8 @@ go build -o loggling ./cmd/loggling/main.go
 
 ## Recent Updates
 
+- **Network Gateway Mode (HTTP Ingress)**: Beyond parsing local files, Loggling can act as a persistent high-speed log ingestion server listening to `POST /logs`.
+- **Zero-Downtime Log Rotation**: Perfectly handles `SIGHUP` signals to rotate log file handles seamlessly without restarting the process, natively supporting `logrotate` and `newsyslog`.
 - **Multi-core Parallel Processing**: Utilizes Go Worker Pools to concurrently parse files within directories using all CPU cores.
 - **TUI Progress Monitoring**: Check multi-line progress bars and per-worker TPS animations in real-time right in your terminal, similar to Docker.
 - **Glob Path Integration**: Process multiple files and log directories simultaneously using wildcards (`*.log`).
