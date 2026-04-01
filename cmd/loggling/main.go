@@ -5,10 +5,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/loggling/loggling/pkg/config"
 	"github.com/loggling/loggling/pkg/engine"
+	"github.com/loggling/loggling/pkg/server"
 )
 
 func main() {
@@ -27,17 +30,43 @@ func main() {
 		}
 	}
 
-	if len(targetFiles) == 0 {
-		log.Fatalf("empty files (패턴: %v)", cfg.Default.Inputs)
+	if !cfg.Server.Enabled && len(targetFiles) == 0 {
+		log.Fatalf("empty files (pattern: %v)", cfg.Default.Inputs)
 	}
 
-	outFile, err := os.Create(cfg.Default.Output)
+	outFile, err := engine.NewRotatableWriter(cfg.Default.Output)
+
 	if err != nil {
 		log.Fatalf("output file error: %v", err)
 	}
+
 	defer outFile.Close()
 
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGHUP)
+
+	go func() {
+		for sig := range sigChan {
+			log.Printf("[Loggling] Caught OS signal (%v): rotating log file handle...", sig)
+			outFile.Rotate()
+		}
+	}()
+
 	runner := &engine.StreamRunner{Pipeline: pipe}
+	if cfg.Server.Enabled {
+		gateway := &server.Gateway{
+			Runner: runner,
+			Output: outFile,
+			Port:   cfg.Server.Port,
+		}
+
+		if err := gateway.Start(); err != nil {
+			log.Fatalf("Failed to start gateway server: %v", err)
+		}
+
+		return
+	}
+
 	var inputs []io.Reader
 
 	for _, file := range targetFiles {
