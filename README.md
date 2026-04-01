@@ -11,7 +11,7 @@ Benchmark: processing 10 million lines of complex JSONL logs on a single thread.
 | Metric       | Standard Library (`json.Unmarshal`) | **Loggling (V1)**   | Improvement        |
 | :----------- | :---------------------------------- | :------------------ | :----------------- |
 | Throughput   | ~40,000 logs/s                      | **730,000+ logs/s** | 18x faster         |
-| Memory Alloc | 1,024+ B/op                         | **~0 B/op**         | Zero-allocation    |
+| Memory Alloc | 1,024+ B/op                         | **1 copy/op**       | Ultra-low alloc    |
 | Architecture | Reflection / Full Parse             | Single-pass lexer   | Efficiency-focused |
 
 ---
