@@ -97,6 +97,7 @@ go build -o loggling ./cmd/loggling/main.go
 
 ## Recent Updates
 
+- **Zero Data-Loss DLQ (Dead Letter Queue)**: Built-in strict JSON validation that immediately detects and quarantines structurally corrupted logs into a dedicated DLQ file, ensuring zero data-loss and high enterprise reliability.
 - **Hot Config Reloading**: Automatically watches for changes in `config.yaml` and hot-swaps parsing pipelines in memory using a lock-free structure. Update rules instantly without ever restarting the persistent server.
 - **Network Gateway Mode (HTTP Ingress)**: Beyond parsing local files, Loggling can act as a persistent high-speed log ingestion server listening to `POST /logs`.
 - **Zero-Downtime Log Rotation**: Perfectly handles `SIGHUP` signals to rotate log file handles seamlessly without restarting the process, natively supporting `logrotate` and `newsyslog`.

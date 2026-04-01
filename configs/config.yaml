@@ -3,6 +3,7 @@ default:
     - "./data/*.log"
   output: "./data/output.log"
   registry: "./.logging_registry"
+  dlq: "./data/error_dlq.log"
 server:
     enabled: true
     port: 8080
@@ -11,7 +12,7 @@ pipeline:
     - { field: "user" }
     - { field: "id" }
   filter:
-    - { field: "level", value: "DEBUG" }
+    # - { field: "level", value: "DEBUG" }
   masker:
     - { field: "card", preset: "card" }
     - { field: "password", range: "full" }
