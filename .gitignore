@@ -1,0 +1,9 @@
+prd.md
+.env*
+
+.loggling
+
+cmd/script
+*_test.go
+
+data
