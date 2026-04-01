@@ -1,41 +1,50 @@
 # Loggling
 
-**Loggling** is a high-performance JSONL log pre-processing engine designed for large-scale workloads. By using **Zero-copy Single-scan** techniques and Go's `sync.Pool`, it can process millions of log lines with near-zero memory allocation.
+**Loggling** is an ultra-fast JSONL data refining engine built to process massive JSONL logs at high speed. It utilizes a Zero-copy Single-scan approach and Go's `sync.Pool` to minimize memory allocation while processing millions of logs in real-time.
 
 ---
 
-## Performance
+## Benchmark
 
-Benchmark: processing 10 million lines of complex JSONL logs on a single thread.
+_Test Environment: Apple M1 Mac (8GB RAM)_
 
-| Metric       | Standard Library (`json.Unmarshal`) | **Loggling (V1)**   | Improvement        |
-| :----------- | :---------------------------------- | :------------------ | :----------------- |
-| Throughput   | ~40,000 logs/s                      | **730,000+ logs/s** | 18x faster         |
-| Memory Alloc | 1,024+ B/op                         | **1 copy/op**       | Ultra-low alloc    |
-| Architecture | Reflection / Full Parse             | Single-pass lexer   | Efficiency-focused |
+**1. Single-threaded Engine (V0.1.0)** - 10M Lines
+| Metric | Standard Library (`json.Unmarshal`) | **Loggling (Single)** | Improvement |
+| :------------------ | :---------------------------------- | :-------------------- | :-------------- |
+| Throughput | ~40,000 logs/s | **730,000+ logs/s** | 18x faster |
+| Memory Alloc | 1,024+ B/op | **1 copy/op** | Ultra-low alloc |
+| Architecture | Reflection / Full Parse | Single-pass lexer | Efficiency-focused |
+
+**2. Multi-core Parallel Processing (V0.2.0)** - 32.5M Lines (6 File K-Way Merge)
+| Metric | **Loggling (Parallel)** | Notes |
+| :------------------ | :---------------------- | :---------------------------------- |
+| Throughput | **2,045,800+ logs/s** | 6 concurrent Go workers |
+| Peak RAM | **12.9 MB** | Max RSS processing 32.5M lines |
+| Total Time | **17.58 secs** | 100% sequential chronological sort |
+| Architecture | Worker Pool + Channels | Sustained 4.2 cores utilization |
 
 ---
 
 ## Key Features
 
-- Zero-copy Single-scan engine  
-  Identifies required fields in a single byte-level pass, without reflection or full unmarshaling.
+- **Zero-copy Single-scan Engine**  
+  Identifies all fields in a single byte-level pass. No expensive reflection or full unmarshaling.
 
-- Data refining (Stripper & Masker)
-    - Field stripping: Physically removes unnecessary fields to reduce storage and transfer costs by up to 80%.
-    - Surgical masking: In-place byte masking for sensitive fields such as passwords and emails.
+- **Data Diet (Stripper & Masker)**
+    - Stripping: Physically removes unnecessary metadata fields, reducing storage and transfer costs by up to 80%.
+    - Masking: Precisely masks sensitive fields (like passwords, emails) directly on the original bytes.
 
-- Atomic metrics engine  
-  Tracks LPS, total processed, dropped, and errored logs using atomic counters for real-time visibility.
+- **Atomic Metrics Engine**  
+  Real-time aggregation of throughput (LPS), total processed count, drops, and errors using atomic counters with minimal performance degradation.
 
-- Robustness in production  
-  Handles malformed or broken JSON logs with panic recovery to keep the process running.
+- **Operational Reliability**  
+  Aims for 24/7 uninterrupted processing by recovering from panics even when abnormal logs like Broken JSON are encountered.
 
 ---
 
-## Configuration (YAML)
+## Configuration Guide (YAML)
 
-Loggling uses a YAML configuration file to define the processing pipeline.
+Loggling defines its pipeline using YAML-based configurations.
 
 ```yaml
 # configs/config.yaml
@@ -44,11 +53,11 @@ default:
     output: ./data/output.log
 
 pipeline:
-    # 1. Performance-first filtering
+    # 1. Performance-focused filtering (executed first to reduce downstream overhead)
     filter:
         - { field: "level", value: "DEBUG" }
 
-    # 2. Cost-saving field stripping
+    # 2. Field removal for cost reduction
     stripper:
         - { field: "metadata" }
         - { field: "id" }
@@ -72,8 +81,8 @@ go build -o loggling ./cmd/loggling/main.go
 
 ### Usage
 
-1. Configure your pipeline in `configs/config.yaml`.
-2. Run the engine:
+1. Define your pipeline in the `configs/config.yaml` file.
+2. Run the engine with the following command:
 
 ```bash
 ./loggling
@@ -83,9 +92,9 @@ go build -o loggling ./cmd/loggling/main.go
 
 ## Recent Updates
 
-- **Multi-core Parallel Processing**: Process massive glob directories efficiently utilizing all CPU cores with Go Worker Pools.
-- **TUI Progress Monitoring**: View beautiful Docker-style, multi-line progress bars and TPS speeds directly in your terminal.
-- **Glob Path Integration**: Easily tail and match multiple target files recursively.
+- **Multi-core Parallel Processing**: Utilizes Go Worker Pools to concurrently parse files within directories using all CPU cores.
+- **TUI Progress Monitoring**: Check multi-line progress bars and per-worker TPS animations in real-time right in your terminal, similar to Docker.
+- **Glob Path Integration**: Process multiple files and log directories simultaneously using wildcards (`*.log`).
 
 ---
 
