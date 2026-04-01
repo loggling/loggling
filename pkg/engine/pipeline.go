@@ -25,27 +25,32 @@ func NewPipeline(processors ...model.Processor) *Pipeline {
 	}
 }
 
-func (p *Pipeline) Execute(input []byte) *model.LogPayload {
+func (p *Pipeline) Execute(input []byte) (*model.LogPayload, error) {
 	payload := p.pool.Get().(*model.LogPayload)
 	payload.Data = payload.Data[:0]
 	payload.Data = append(payload.Data, input...)
 
-	ScanJSON(payload)
+	err := ScanJSON(payload)
+	if err != nil {
+		model.GlobalMetrics.AddErrorLine()
+		p.Release(payload)
+		return nil, err
+	}
 
 	for _, proc := range p.processors {
 		if keep := proc.Process(payload); !keep {
 			p.Release(payload)
 			model.GlobalMetrics.AddDroppedLine()
-			return nil
+			return nil, nil
 		}
 
 		if proc.Name() == "FIELD_STRIPPER" {
-			ScanJSON(payload)
+			_ = ScanJSON(payload)
 		}
 	}
 
 	model.GlobalMetrics.AddProcessedLine(len(payload.Data))
-	return payload
+	return payload, nil
 }
 
 func (p *Pipeline) Release(payload *model.LogPayload) {

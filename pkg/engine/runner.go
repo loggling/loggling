@@ -17,10 +17,13 @@ type LogItem struct {
 
 type StreamRunner struct {
 	pipeline atomic.Value
+	dlq      *RotatableWriter
 }
 
-func NewStreamRunner(p *Pipeline) *StreamRunner {
-	r := &StreamRunner{}
+func NewStreamRunner(p *Pipeline, dlqWriter *RotatableWriter) *StreamRunner {
+	r := &StreamRunner{
+		dlq: dlqWriter,
+	}
 	r.pipeline.Store(p)
 	return r
 }
@@ -109,7 +112,15 @@ func (r *StreamRunner) worker(input io.Reader, out chan<- LogItem, myCounter *in
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		p := r.getPipeline()
-		result := p.Execute(line)
+		result, err := p.Execute(line)
+
+		if err != nil {
+			if r.dlq != nil {
+				r.dlq.Write(line)
+				r.dlq.Write([]byte{'\n'})
+			}
+			continue
+		}
 
 		if result != nil {
 			currentTime := extractTimestamp()
@@ -181,8 +192,15 @@ func (r *StreamRunner) Run(input io.Reader, output io.Writer) error {
 				}
 			}()
 
-			result := p.Execute(line)
+			result, err := p.Execute(line)
 
+			if err != nil {
+				if r.dlq != nil {
+					r.dlq.Write(line)
+					r.dlq.Write([]byte{'\n'})
+				}
+				return
+			}
 			if result != nil {
 				writer.Write(result.Data)
 				writer.WriteByte('\n')

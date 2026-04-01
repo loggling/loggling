@@ -1,8 +1,12 @@
 package engine
 
-import "github.com/loggling/loggling/pkg/model"
+import (
+	"errors"
 
-func ScanJSON(payload *model.LogPayload) {
+	"github.com/loggling/loggling/pkg/model"
+)
+
+func ScanJSON(payload *model.LogPayload) error {
 	payload.FieldIndices = payload.FieldIndices[:0]
 	data := payload.Data
 
@@ -31,7 +35,6 @@ func ScanJSON(payload *model.LogPayload) {
 					current.ValEnd = i
 					payload.FieldIndices = append(payload.FieldIndices, current)
 					waitingForValue = false
-
 				}
 			}
 		case ':':
@@ -58,4 +61,13 @@ func ScanJSON(payload *model.LogPayload) {
 		}
 	}
 
+	if inQuotes {
+		return errors.New("unclosed string quotes in JSON payload")
+	}
+
+	if len(payload.FieldIndices) == 0 && string(data) != "{}" {
+		return errors.New("malformed JSON payload: no fields detected")
+	}
+
+	return nil
 }

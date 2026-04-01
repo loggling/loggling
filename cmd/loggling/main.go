@@ -43,6 +43,18 @@ func main() {
 
 	defer outFile.Close()
 
+	var dlqFile *engine.RotatableWriter
+
+	if cfg.Default.DLQ != "" {
+		var err error
+		dlqFile, err = engine.NewRotatableWriter(cfg.Default.DLQ)
+		if err != nil {
+			log.Fatalf("dlq file error: %v", err)
+		}
+
+		defer dlqFile.Close()
+	}
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGHUP)
 
@@ -50,10 +62,14 @@ func main() {
 		for sig := range sigChan {
 			log.Printf("[Loggling] Caught OS signal (%v): rotating log file handle...", sig)
 			outFile.Rotate()
+
+			if dlqFile != nil {
+				dlqFile.Rotate()
+			}
 		}
 	}()
 
-	runner := engine.NewStreamRunner(pipe)
+	runner := engine.NewStreamRunner(pipe, dlqFile)
 
 	go config.WatchConfig("./configs/config.yaml", 2*time.Second, func(newCfg *config.Config) {
 		newPipeline := engine.NewPipelineFromConfig(newCfg)
