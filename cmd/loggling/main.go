@@ -70,6 +70,7 @@ func main() {
 	}
 
 	pipe := engine.NewPipelineFromConfig(cfg)
+	seenFiles := make(map[string]bool)
 	var targetFiles []string
 
 	absOutput, _ := filepath.Abs(filepath.Clean(cfg.Default.Output))
@@ -82,11 +83,17 @@ func main() {
 			for _, match := range matches {
 				absMatch, _ := filepath.Abs(filepath.Clean(match))
 
+				if seenFiles[absMatch] {
+					continue
+				}
+
 				if absMatch == absOutput || absMatch == absDLQ {
 					logger.Debug("Excluding output/dlq file:", absMatch)
 					continue
 				}
 				targetFiles = append(targetFiles, match)
+				seenFiles[absMatch] = true
+
 			}
 		}
 	}

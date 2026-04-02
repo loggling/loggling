@@ -7,4 +7,7 @@ cmd/script
 *_test.go
 
 data
-loggling
+logs
+
+.DS_Store
+/loggling
