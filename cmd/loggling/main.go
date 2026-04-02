@@ -78,7 +78,43 @@ func main() {
 		log.Println("[Loggling] Hot-reload complete! New YAML ruleset applied without downtime.")
 	})
 
+	// 로컬 파일 처리 로직을 익명 함수로 묶습니다.
+	processLocalFiles := func() {
+		var inputs []io.Reader
+		for _, file := range targetFiles {
+			inFile, err := os.Open(file)
+			if err != nil {
+				log.Printf("[%s] failed to open: %v", file, err)
+				continue
+			}
+			inputs = append(inputs, inFile)
+		}
+
+		if len(inputs) == 0 {
+			return
+		}
+
+		// 파일 처리 종료 시 열어둔 파일들을 닫습니다.
+		defer func() {
+			for _, r := range inputs {
+				if f, ok := r.(*os.File); ok {
+					f.Close()
+				}
+			}
+		}()
+
+		log.Printf("Starting to process %d local files...", len(inputs))
+		if err := runner.RunParallel(inputs, outFile); err != nil {
+			log.Printf("runtime error: %v", err)
+		}
+		fmt.Println("Local file processing complete.")
+	}
+
 	if cfg.Server.Enabled {
+		// 💥 핵심: 게이트웨이가 켜져 있다면, 로컬 파일 처리는 백그라운드(Goroutine)로 돌립니다!
+		go processLocalFiles()
+
+		// 게이트웨이(HTTP 서버)는 메인 스레드에서 무한 대기하며 실행됩니다.
 		gateway := &server.Gateway{
 			Runner: runner,
 			Output: outFile,
@@ -88,27 +124,8 @@ func main() {
 		if err := gateway.Start(); err != nil {
 			log.Fatalf("Failed to start gateway server: %v", err)
 		}
-
-		return
+	} else {
+		// 서버 모드가 아닐 경우 기존처럼 메인 스레드에서 파일을 처리하고 끝냅니다.
+		processLocalFiles()
 	}
-
-	var inputs []io.Reader
-
-	for _, file := range targetFiles {
-		inFile, err := os.Open(file)
-
-		if err != nil {
-			log.Printf("[%s] failed to open: %v", file, err)
-			continue
-		}
-
-		defer inFile.Close()
-		inputs = append(inputs, inFile)
-	}
-
-	if err := runner.RunParallel(inputs, outFile); err != nil {
-		log.Printf("runtime error: %v", err)
-	}
-
-	fmt.Println("Processing complete.")
 }

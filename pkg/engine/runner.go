@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -38,76 +39,43 @@ func (r *StreamRunner) getPipeline() *Pipeline {
 
 func (r *StreamRunner) RunParallel(inputs []io.Reader, output io.Writer) error {
 	numFiles := len(inputs)
-	channels := make([]chan LogItem, numFiles)
+	mergedChan := make(chan *model.LogPayload, 5000)
 	workerCounts := make([]int64, numFiles)
+	var wg sync.WaitGroup
 
 	for i := range numFiles {
-		channels[i] = make(chan LogItem, 100)
-
-		go r.worker(inputs[i], channels[i], &workerCounts[i])
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			r.worker(inputs[idx], mergedChan, &workerCounts[idx])
+		}(i)
 	}
 
 	stopTUI := make(chan bool)
 	go r.renderTUI(workerCounts, stopTUI)
-	err := r.mergeAndWrite(channels, output)
 
-	close(stopTUI)
-
-	return err
-}
-
-func (r *StreamRunner) mergeAndWrite(channels []chan LogItem, output io.Writer) error {
-	numFiles := len(channels)
-	heads := make([]*LogItem, numFiles)
-
-	for i := range numFiles {
-		item, ok := <-channels[i]
-
-		if ok {
-			heads[i] = &item
-		} else {
-			heads[i] = nil
-		}
-	}
+	// 파이프(채널)를 닫아주는 안전장치
+	go func() {
+		wg.Wait()
+		close(mergedChan)
+	}()
 
 	writer := bufio.NewWriter(output)
-	defer writer.Flush()
-
-	for {
-		minIndex := -1
-		var minTime int64 = 1<<63 - 1
-
-		for i := range numFiles {
-			if heads[i] != nil && heads[i].TimeStamp < minTime {
-				minTime = heads[i].TimeStamp
-				minIndex = i
-			}
-		}
-
-		if minIndex == -1 {
-			break
-		}
-
-		writer.Write(heads[minIndex].Data)
+	// 병합 쓰기 (Fan-in) 로직
+	for result := range mergedChan {
+		writer.Write(result.Data)
 		writer.WriteByte('\n')
-
-		nextItem, ok := <-channels[minIndex]
-
-		if ok {
-			heads[minIndex] = &nextItem
-		} else {
-			heads[minIndex] = nil
-		}
-
+		p := r.getPipeline()
+		p.Release(result)
 	}
+	writer.Flush()
 
+	close(stopTUI)
 	return nil
 }
 
-func (r *StreamRunner) worker(input io.Reader, out chan<- LogItem, myCounter *int64) {
-
+func (r *StreamRunner) worker(input io.Reader, out chan<- *model.LogPayload, myCounter *int64) {
 	scanner := bufio.NewScanner(input)
-	var lastTime int64 = 0
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
@@ -123,32 +91,16 @@ func (r *StreamRunner) worker(input io.Reader, out chan<- LogItem, myCounter *in
 		}
 
 		if result != nil {
-			currentTime := extractTimestamp()
-
-			if currentTime == 0 {
-				currentTime = lastTime
-			} else {
-				lastTime = currentTime
-			}
-
-			dataCopy := make([]byte, len(result.Data))
-			copy(dataCopy, result.Data)
-
-			out <- LogItem{
-				TimeStamp: currentTime,
-				Data:      dataCopy,
-			}
-
-			p.Release(result)
+			out <- result
 			atomic.AddInt64(myCounter, 1)
 		}
 	}
-	close(out)
 }
 
 func extractTimestamp() int64 {
 	return time.Now().UnixNano()
 }
+
 func (r *StreamRunner) Run(input io.Reader, output io.Writer) error {
 	stop := make(chan bool)
 

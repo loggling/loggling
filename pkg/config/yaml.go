@@ -9,7 +9,7 @@ import (
 type DefaultConfig struct {
 	Inputs   []string `yaml:"inputs"`
 	Output   string   `yaml:"output"`
-	DLQ      string   `yaml:"dlq"`
+	DLQ string 
 	Registry string   `yaml:"registry"`
 }
 type Config struct {
