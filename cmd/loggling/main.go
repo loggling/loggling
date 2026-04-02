@@ -38,8 +38,7 @@ func main() {
 	fmt.Println(`                                          `)
 	fmt.Printf("\033[0m")
 	flag.Usage = func() {
-
-		fmt.Println("\nHigh-performance, parallel log gateway for cloud & local pipelines.\n")
+		fmt.Println("High-performance, parallel log gateway for cloud & local pipelines.")
 
 		fmt.Println("\033[1mUSAGE:\033[0m")
 		fmt.Println("    loggling [OPTIONS]")
