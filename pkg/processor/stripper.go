@@ -1,3 +1,5 @@
+// Package processor provides log data transformation logic.
+// stripper.go removes specified keys from the JSON log payload.
 package processor
 
 import (

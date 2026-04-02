@@ -1,3 +1,6 @@
+// Package config handles the initialization and hot-reloading of project settings.
+// watcher.go utilizes a zero-dependency os.Stat polling mechanism to detect
+// configuration file changes and trigger highly available, lock-free pipeline swaps.
 package config
 
 import (

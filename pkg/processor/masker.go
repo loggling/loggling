@@ -1,3 +1,5 @@
+// Package processor provides log data transformation logic.
+// masker.go sensitive fields within the log data (e.g. passwords).
 package processor
 
 import (

@@ -1,3 +1,6 @@
+// Package engine provides the core log processing mechanics.
+// monitor.go separates the Terminal UI (TUI) metrics rendering,
+// displaying real-time processing speeds, dropped lines, and total parsed payloads.
 package engine
 
 import (
@@ -6,8 +9,10 @@ import (
 	"time"
 )
 
+const tuiRefreshRate = time.Second
+
 func (r *StreamRunner) renderTUI(counts []int64, stop <-chan bool) {
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(tuiRefreshRate)
 	defer ticker.Stop()
 
 	numWorkers := len(counts)
@@ -36,7 +41,7 @@ func (r *StreamRunner) renderTUI(counts []int64, stop <-chan bool) {
 				totalLines += current
 				fmt.Printf("Worker %02d | Speed: %8d logs/s | Total: %10d \033[K\n", i+1, tps, current)
 			}
-			fmt.Printf("[TOTAL]  | Speed: %8d logs/s | Total: %10d \033[K\n", totalTPS, totalLines)
+			fmt.Printf("[TOTAL] | Speed: %8d logs/s | Total: %10d \033[K\n", totalTPS, totalLines)
 
 		case <-stop:
 			fmt.Println("success")

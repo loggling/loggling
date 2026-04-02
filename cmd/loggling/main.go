@@ -1,7 +1,9 @@
+// Package main is the entry point for the Loggling daemon.
+// It initializes configurations, sets up the log processing pipeline,
+// and starts either the background file processors or the real-time HTTP gateway.
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -73,12 +75,10 @@ func main() {
 
 	go config.WatchConfig("./configs/config.yaml", 2*time.Second, func(newCfg *config.Config) {
 		newPipeline := engine.NewPipelineFromConfig(newCfg)
-		// Atomically swap the pipeline without any locks
 		runner.SwapPipeline(newPipeline)
 		log.Println("[Loggling] Hot-reload complete! New YAML ruleset applied without downtime.")
 	})
 
-	// 로컬 파일 처리 로직을 익명 함수로 묶습니다.
 	processLocalFiles := func() {
 		var inputs []io.Reader
 		for _, file := range targetFiles {
@@ -94,7 +94,6 @@ func main() {
 			return
 		}
 
-		// 파일 처리 종료 시 열어둔 파일들을 닫습니다.
 		defer func() {
 			for _, r := range inputs {
 				if f, ok := r.(*os.File); ok {
@@ -103,18 +102,16 @@ func main() {
 			}
 		}()
 
-		log.Printf("Starting to process %d local files...", len(inputs))
+		log.Printf("[Loggling] Starting to process %d local files...", len(inputs))
 		if err := runner.RunParallel(inputs, outFile); err != nil {
-			log.Printf("runtime error: %v", err)
+			log.Printf("[Loggling] Runtime error during parallel processing: %v", err)
 		}
-		fmt.Println("Local file processing complete.")
+		log.Printf("[Loggling] Local file processing complete.")
 	}
 
 	if cfg.Server.Enabled {
-		// 💥 핵심: 게이트웨이가 켜져 있다면, 로컬 파일 처리는 백그라운드(Goroutine)로 돌립니다!
 		go processLocalFiles()
 
-		// 게이트웨이(HTTP 서버)는 메인 스레드에서 무한 대기하며 실행됩니다.
 		gateway := &server.Gateway{
 			Runner: runner,
 			Output: outFile,
@@ -122,10 +119,9 @@ func main() {
 		}
 
 		if err := gateway.Start(); err != nil {
-			log.Fatalf("Failed to start gateway server: %v", err)
+			log.Fatalf("[Gateway] Failed to start server: %v", err)
 		}
 	} else {
-		// 서버 모드가 아닐 경우 기존처럼 메인 스레드에서 파일을 처리하고 끝냅니다.
 		processLocalFiles()
 	}
 }

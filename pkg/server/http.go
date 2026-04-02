@@ -1,3 +1,5 @@
+// Package server handles the network ingestion layer.
+// http.go implements the POST /logs gateway for real-time log ingestion.
 package server
 
 import (

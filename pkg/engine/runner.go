@@ -1,3 +1,6 @@
+// Package engine provides the core log processing mechanics.
+// runner.go manages the high-throughput fan-in data streaming,
+// executing parallel worker goroutines to parse and filter log payloads without deadlocks.
 package engine
 
 import (
@@ -9,6 +12,12 @@ import (
 	"time"
 
 	"github.com/loggling/loggling/pkg/model"
+)
+
+const (
+	fanInChannelCapacity = 5000
+	initialBufferSize    = 64 * 1024
+	maxLogLineSize       = 10 * 1024 * 1024
 )
 
 type StreamRunner struct {
@@ -34,7 +43,7 @@ func (r *StreamRunner) getPipeline() *Pipeline {
 
 func (r *StreamRunner) RunParallel(inputs []io.Reader, output io.Writer) error {
 	numFiles := len(inputs)
-	mergedChan := make(chan *model.LogPayload, 5000)
+	mergedChan := make(chan *model.LogPayload, fanInChannelCapacity)
 	workerCounts := make([]int64, numFiles)
 	var wg sync.WaitGroup
 
@@ -49,14 +58,12 @@ func (r *StreamRunner) RunParallel(inputs []io.Reader, output io.Writer) error {
 	stopTUI := make(chan bool)
 	go r.renderTUI(workerCounts, stopTUI)
 
-	// 파이프(채널)를 닫아주는 안전장치
 	go func() {
 		wg.Wait()
 		close(mergedChan)
 	}()
 
 	writer := bufio.NewWriter(output)
-	// 병합 쓰기 (Fan-in) 로직
 	for result := range mergedChan {
 		writer.Write(result.Data)
 		writer.WriteByte('\n')
@@ -121,8 +128,8 @@ func (r *StreamRunner) Run(input io.Reader, output io.Writer) error {
 
 	scanner := bufio.NewScanner(input)
 
-	buf := make([]byte, 0, 64*1024)
-	scanner.Buffer(buf, 10*1024*1024)
+	buf := make([]byte, 0, initialBufferSize)
+	scanner.Buffer(buf, maxLogLineSize)
 
 	writer := bufio.NewWriter(output)
 	defer writer.Flush()

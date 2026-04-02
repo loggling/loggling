@@ -1,3 +1,6 @@
+// Package engine provides the core log processing mechanics.
+// pipeline.go defines the lifecycle of a single log line, utilizing sync.Pool
+// for zero-allocation parsing and evaluating filter conditions before yielding valid data.
 package engine
 
 import (

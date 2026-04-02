@@ -1,3 +1,5 @@
+// Package model defines the core data structures and metrics used by the engine.
+// types.go contains the main data structures for log payloads and processor interfaces.
 package model
 
 type LogPayload struct {

@@ -1,3 +1,5 @@
+// Package model defines the core data structures and metrics used by the engine.
+// metrics.go provides thread-safe counters for monitoring log processing engine performance.
 package model
 
 import "sync/atomic"

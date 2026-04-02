@@ -1,3 +1,5 @@
+// Package config handles the initialization and hot-reloading of project settings.
+// yaml.go implements config loading from YAML files using standard library and third-party decoders.
 package config
 
 import (

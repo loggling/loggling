@@ -1,3 +1,5 @@
+// Package processor provides log data transformation logic.
+// filter.go evaluates whether a log entry should be kept or dropped based on levels.
 package processor
 
 import (

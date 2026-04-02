@@ -1,3 +1,5 @@
+// Package engine provides the core log processing mechanics.
+// scanner.go implements a high-performance, single-pass JSON scanner for log parsing.
 package engine
 
 import (

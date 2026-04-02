@@ -1,3 +1,5 @@
+// Package engine provides the core log processing mechanics.
+// factory.go handles the instantiation of pipelines and processors from configuration.
 package engine
 
 import (

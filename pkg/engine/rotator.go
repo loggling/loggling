@@ -1,3 +1,5 @@
+// Package engine provides the core log processing mechanics.
+// rotator.go provides thread-safe, rotatable file writers for output and DLQ logging.
 package engine
 
 import (

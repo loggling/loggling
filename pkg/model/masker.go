@@ -1,3 +1,5 @@
+// Package model defines the core data structures and metrics used by the engine.
+// masker.go defines the configuration for sensitive field masking.
 package model
 
 import (

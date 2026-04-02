@@ -1,3 +1,5 @@
+// Package processor provides log data transformation logic.
+// deduplication.go filters out identical consecutive log entries to reduce noise.
 package processor
 
 import (
