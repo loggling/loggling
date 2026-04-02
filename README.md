@@ -49,8 +49,10 @@ Loggling defines its runtime behavior via a YAML file.
 ```yaml
 # configs/config.yaml
 default:
-    input: ./data/input.log
+    inputs:
+        - "./data/*.log"
     output: ./data/output.log
+    dlq: ./data/error_dlq.log
 
 # Server mode configuration
 server:

@@ -11,11 +11,6 @@ import (
 	"github.com/loggling/loggling/pkg/model"
 )
 
-type LogItem struct {
-	TimeStamp int64
-	Data      []byte
-}
-
 type StreamRunner struct {
 	pipeline atomic.Value
 	dlq      *RotatableWriter
@@ -97,10 +92,6 @@ func (r *StreamRunner) worker(input io.Reader, out chan<- *model.LogPayload, myC
 	}
 }
 
-func extractTimestamp() int64 {
-	return time.Now().UnixNano()
-}
-
 func (r *StreamRunner) Run(input io.Reader, output io.Writer) error {
 	stop := make(chan bool)
 
@@ -129,36 +120,31 @@ func (r *StreamRunner) Run(input io.Reader, output io.Writer) error {
 	}()
 
 	scanner := bufio.NewScanner(input)
-	writer := bufio.NewWriter(output)
 
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 10*1024*1024)
+
+	writer := bufio.NewWriter(output)
 	defer writer.Flush()
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		p := r.getPipeline()
 
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					model.GlobalMetrics.AddErrorLine()
-				}
-			}()
+		result, err := p.Execute(line)
 
-			result, err := p.Execute(line)
-
-			if err != nil {
-				if r.dlq != nil {
-					r.dlq.Write(line)
-					r.dlq.Write([]byte{'\n'})
-				}
-				return
+		if err != nil {
+			if r.dlq != nil {
+				r.dlq.Write(line)
+				r.dlq.Write([]byte{'\n'})
 			}
-			if result != nil {
-				writer.Write(result.Data)
-				writer.WriteByte('\n')
-				p.Release(result)
-			}
-		}()
+			continue
+		}
+		if result != nil {
+			writer.Write(result.Data)
+			writer.WriteByte('\n')
+			p.Release(result)
+		}
 	}
 
 	close(stop)
@@ -167,43 +153,4 @@ func (r *StreamRunner) Run(input io.Reader, output io.Writer) error {
 		model.GlobalMetrics.DroppedLines.Load())
 
 	return scanner.Err()
-}
-
-func (r *StreamRunner) renderTUI(counts []int64, stop <-chan bool) {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	numWorkers := len(counts)
-	lastCounts := make([]int64, numWorkers)
-	firstDraw := true
-
-	for {
-		select {
-		case <-ticker.C:
-			if !firstDraw {
-				fmt.Printf("\033[%dA", numWorkers+1)
-			}
-
-			firstDraw = false
-
-			var totalTPS int64
-			var totalLines int64
-
-			for i := range numWorkers {
-				current := atomic.LoadInt64(&counts[i])
-				tps := current - lastCounts[i]
-
-				lastCounts[i] = current
-
-				totalTPS += tps
-				totalLines += current
-				fmt.Printf("Worker %02d | Speed: %8d logs/s | Total: %10d \033[K\n", i+1, tps, current)
-			}
-			fmt.Printf("[TOTAL]  | Speed: %8d logs/s | Total: %10d \033[K\n", totalTPS, totalLines)
-
-		case <-stop:
-			fmt.Println("success")
-			return
-		}
-	}
 }
