@@ -3,10 +3,11 @@
 package engine
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/loggling/loggling/pkg/model/logger"
 )
 
 type RotatableWriter struct {
@@ -48,12 +49,12 @@ func (rw *RotatableWriter) Rotate() error {
 	f, err := os.OpenFile(rw.filepath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 
 	if err != nil {
-		log.Printf("[Rotator] Failed to open log file: %v", err)
+		logger.Error("[Rotator] Failed to open log file:", err)
 		return err
 	}
 
 	rw.file = f
-	log.Printf("[Rotator] Log file successfully rotated: %s", rw.filepath)
+	logger.Info("[Rotator] Log file successfully rotated:", rw.filepath)
 
 	return nil
 }

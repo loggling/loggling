@@ -5,10 +5,10 @@ package server
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/loggling/loggling/pkg/engine"
+	"github.com/loggling/loggling/pkg/model/logger"
 )
 
 type Gateway struct {
@@ -19,12 +19,16 @@ type Gateway struct {
 
 func (g *Gateway) Start() error {
 	http.HandleFunc("/logs", g.handleLogs)
+	http.HandleFunc("/health", g.handleHealth)
 
 	addr := fmt.Sprintf(":%d", g.Port)
-	log.Printf("🚀 Loggling Gateway Server Started on %s", addr)
+	logger.Info("[Gateway] Started Loggling HTTP Gateway on", addr)
 	return http.ListenAndServe(addr, nil)
 }
-
+func (g *Gateway) handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK\n"))
+}
 func (g *Gateway) handleLogs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed (only POST)", http.StatusMethodNotAllowed)
@@ -34,7 +38,7 @@ func (g *Gateway) handleLogs(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err := g.Runner.Run(r.Body, g.Output); err != nil {
-		log.Printf("Request Parsing Error: %v", err)
+		logger.Error("[Gateway] Request Parsing Error:", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

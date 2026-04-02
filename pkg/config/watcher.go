@@ -4,9 +4,10 @@
 package config
 
 import (
-	"log"
 	"os"
 	"time"
+
+	"github.com/loggling/loggling/pkg/model/logger"
 )
 
 func WatchConfig(filePath string, interval time.Duration, onUpdate func(*Config)) {
@@ -29,11 +30,11 @@ func WatchConfig(filePath string, interval time.Duration, onUpdate func(*Config)
 		if currentModTime.After(lastModTime) {
 			lastModTime = currentModTime
 
-			log.Printf("[Hot-Reload] Detected changes in '%s'. Compiling new ruleset...", filePath)
+			logger.Info("[Hot-Reload] Detected changes in '", filePath, "'. Compiling new ruleset...")
 
 			newCfg, err := LoadConfig(filePath)
 			if err != nil {
-				log.Printf("[Hot-Reload] WARNING: Syntax error in YAML. Keeping the existing configuration intact. (%v)", err)
+				logger.Warn("[Hot-Reload] WARNING: Syntax error in YAML. Keeping the existing configuration intact. (", err, ")")
 				continue
 			}
 

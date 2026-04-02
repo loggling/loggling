@@ -1,9 +1,8 @@
 default:
-  inputs: 
-    - "./data/*.log"
-  output: "./data/output.log"
-  registry: "./.logging_registry"
   dlq: "./data/error_dlq.log"
+  registry: "./.logging_registry"
+  output: "./logs/output.log"
+  inputs: ["./logs/*.log"]
 server:
     enabled: true
     port: 8080

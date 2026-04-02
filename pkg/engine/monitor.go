@@ -5,13 +5,16 @@ package engine
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync/atomic"
 	"time"
+
+	"github.com/loggling/loggling/pkg/model/logger"
 )
 
 const tuiRefreshRate = time.Second
 
-func (r *StreamRunner) renderTUI(counts []int64, stop <-chan bool) {
+func (r *StreamRunner) renderTUI(counts []int64, names []string, stop <-chan bool) {
 	ticker := time.NewTicker(tuiRefreshRate)
 	defer ticker.Stop()
 
@@ -39,12 +42,12 @@ func (r *StreamRunner) renderTUI(counts []int64, stop <-chan bool) {
 
 				totalTPS += tps
 				totalLines += current
-				fmt.Printf("Worker %02d | Speed: %8d logs/s | Total: %10d \033[K\n", i+1, tps, current)
+				fileName := filepath.Base(names[i])
+				logger.Raw("Speed:", fmt.Sprintf("%8d", tps), "logs/s | Total:", fmt.Sprintf("%10d", current), ">", fileName, "\033[K")
 			}
-			fmt.Printf("[TOTAL] | Speed: %8d logs/s | Total: %10d \033[K\n", totalTPS, totalLines)
+			logger.Raw("Speed:", fmt.Sprintf("%8d", totalTPS), "logs/s | Total:", fmt.Sprintf("%10d", totalLines), "> TOTAL", "\033[K")
 
 		case <-stop:
-			fmt.Println("success")
 			return
 		}
 	}

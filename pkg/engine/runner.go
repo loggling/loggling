@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/loggling/loggling/pkg/model"
+	"github.com/loggling/loggling/pkg/model/logger"
 )
 
 const (
@@ -41,7 +42,7 @@ func (r *StreamRunner) getPipeline() *Pipeline {
 	return r.pipeline.Load().(*Pipeline)
 }
 
-func (r *StreamRunner) RunParallel(inputs []io.Reader, output io.Writer) error {
+func (r *StreamRunner) RunParallel(inputs []io.Reader, inputNames []string, output io.Writer) error {
 	numFiles := len(inputs)
 	mergedChan := make(chan *model.LogPayload, fanInChannelCapacity)
 	workerCounts := make([]int64, numFiles)
@@ -56,7 +57,7 @@ func (r *StreamRunner) RunParallel(inputs []io.Reader, output io.Writer) error {
 	}
 
 	stopTUI := make(chan bool)
-	go r.renderTUI(workerCounts, stopTUI)
+	go r.renderTUI(workerCounts, inputNames, stopTUI)
 
 	go func() {
 		wg.Wait()
@@ -117,8 +118,8 @@ func (r *StreamRunner) Run(input io.Reader, output io.Writer) error {
 				tps := current - lastCount
 				lastCount = current
 
-				fmt.Printf("\r [Loggling] Speed: %d logs/sec | Total: %d | Dropped: %d | Errored: %d",
-					tps, current, dropped, errored)
+				logger.Raw(fmt.Sprintf("\r [Loggling] Speed: %d logs/sec | Total: %d | Dropped: %d | Errored: %d",
+					tps, current, dropped, errored))
 
 			case <-stop:
 				return
@@ -155,9 +156,9 @@ func (r *StreamRunner) Run(input io.Reader, output io.Writer) error {
 	}
 
 	close(stop)
-	fmt.Printf("\n All processing complete. Final processed: %d, dropped: %d\n",
+	logger.Raw(fmt.Sprintf("\n [Loggling] All processing complete. Final processed: %d, dropped: %d\n",
 		model.GlobalMetrics.ProcessedLines.Load(),
-		model.GlobalMetrics.DroppedLines.Load())
+		model.GlobalMetrics.DroppedLines.Load()))
 
 	return scanner.Err()
 }
